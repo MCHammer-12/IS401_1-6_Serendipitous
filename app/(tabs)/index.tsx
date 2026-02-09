@@ -20,9 +20,11 @@ import Animated, {
   withDelay,
   Easing,
   FadeIn,
+  FadeInUp,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { useUser } from '@/lib/user-context';
+import { useDiscovery } from '@/lib/discovery-context';
 import { ParticleBackground } from '@/components/ParticleBackground';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -36,9 +38,11 @@ interface MapDotProps {
   delay: number;
   onPress?: () => void;
   isSelf?: boolean;
+  isHighlighted?: boolean;
+  isNewlyDiscovered?: boolean;
 }
 
-function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotProps) {
+function MapDot({ x, y, color, label, score, delay, onPress, isSelf, isHighlighted, isNewlyDiscovered }: MapDotProps) {
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.5);
   const floatY = useSharedValue(0);
@@ -47,7 +51,7 @@ function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotPro
     pulseScale.value = withDelay(
       delay,
       withRepeat(
-        withTiming(2.2, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(isHighlighted ? 3 : 2.2, { duration: isHighlighted ? 1200 : 2000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       )
@@ -55,7 +59,7 @@ function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotPro
     pulseOpacity.value = withDelay(
       delay,
       withRepeat(
-        withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: isHighlighted ? 1200 : 2000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       )
@@ -68,7 +72,7 @@ function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotPro
         true
       )
     );
-  }, []);
+  }, [isHighlighted]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
@@ -86,27 +90,28 @@ function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotPro
     onPress?.();
   };
 
-  const dotSize = isSelf ? 18 : score ? Math.max(12, Math.min(20, score / 5)) : 14;
+  const dotSize = isSelf ? 18 : isHighlighted ? 22 : score ? Math.max(12, Math.min(20, score / 5)) : 14;
+  const dotColor = isHighlighted ? Colors.dark.warning : color;
 
   return (
     <Pressable
       onPress={handlePress}
-      style={[styles.dotContainer, { left: x - 22, top: y - 22 }]}
+      style={[styles.dotContainer, { left: x - 28, top: y - 28 }]}
     >
       <Animated.View style={floatStyle}>
         <Animated.View
           style={[
             styles.dotPulse,
             pulseStyle,
-            { backgroundColor: color },
+            { backgroundColor: dotColor },
           ]}
         />
         <View
           style={[
             styles.dot,
             {
-              backgroundColor: color,
-              shadowColor: color,
+              backgroundColor: dotColor,
+              shadowColor: dotColor,
               width: dotSize,
               height: dotSize,
               borderRadius: dotSize / 2,
@@ -118,14 +123,102 @@ function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotPro
         )}
       </Animated.View>
       <View style={styles.dotLabelRow}>
-        <Text style={[styles.dotLabel, { color }]} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.dotLabel, { color: dotColor }]} numberOfLines={1}>{label}</Text>
         {!isSelf && score !== undefined && (
-          <View style={[styles.scoreBadge, { backgroundColor: color + '30' }]}>
-            <Text style={[styles.scoreText, { color }]}>{score}%</Text>
+          <View style={[styles.scoreBadge, { backgroundColor: dotColor + '30' }]}>
+            <Text style={[styles.scoreText, { color: dotColor }]}>{score}%</Text>
+          </View>
+        )}
+        {isNewlyDiscovered && !isSelf && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
           </View>
         )}
       </View>
     </Pressable>
+  );
+}
+
+function ScanButton() {
+  const { isScanning, startScanning, stopScanning, hasPermission, requestPermission } = useDiscovery();
+  const scanPulse = useSharedValue(1);
+
+  useEffect(() => {
+    if (isScanning) {
+      scanPulse.value = withRepeat(
+        withTiming(1.3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    } else {
+      scanPulse.value = withTiming(1);
+    }
+  }, [isScanning]);
+
+  const scanPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scanPulse.value }],
+    opacity: isScanning ? 0.3 : 0,
+  }));
+
+  const handlePress = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    if (!hasPermission) {
+      await requestPermission();
+    }
+    if (isScanning) {
+      stopScanning();
+    } else {
+      startScanning();
+    }
+  };
+
+  return (
+    <Pressable onPress={handlePress} style={styles.scanBtnContainer}>
+      <Animated.View style={[styles.scanPulseRing, scanPulseStyle]} />
+      <LinearGradient
+        colors={isScanning ? [Colors.dark.warning, '#FF4444'] : [Colors.dark.accent, '#00B894']}
+        style={styles.scanBtnGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Ionicons
+          name={isScanning ? 'stop' : 'bluetooth'}
+          size={20}
+          color="#fff"
+        />
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function DiscoveryBanner() {
+  const { discoveredPeople, isScanning } = useDiscovery();
+
+  const discoveredCount = discoveredPeople.length;
+  const notifiedCount = discoveredPeople.filter(d => d.notified).length;
+  const pendingCount = discoveredCount - notifiedCount;
+
+  if (!isScanning && discoveredCount === 0) return null;
+
+  return (
+    <Animated.View entering={FadeInUp.duration(400)} style={styles.discoveryBanner}>
+      <View style={styles.discoveryBannerInner}>
+        {isScanning && (
+          <View style={styles.scanningRow}>
+            <View style={styles.scanningDot} />
+            <Text style={styles.scanningText}>Scanning for nearby people...</Text>
+          </View>
+        )}
+        {discoveredCount > 0 && (
+          <Text style={styles.discoveredText}>
+            {discoveredCount} {discoveredCount === 1 ? 'person' : 'people'} detected
+            {pendingCount > 0 ? ` (${pendingCount} approaching)` : ''}
+          </Text>
+        )}
+      </View>
+    </Animated.View>
   );
 }
 
@@ -139,11 +232,19 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const { filteredNearbyPeople, getSerendipityScores, interestThreshold } = useUser();
+  const { highlightedPersonId, clearHighlight, discoveredPeople, isScanning } = useDiscovery();
 
   const scores = getSerendipityScores();
   const filteredScores = scores.filter(s =>
     filteredNearbyPeople.some(p => p.id === s.person.id)
   );
+
+  useEffect(() => {
+    if (highlightedPersonId) {
+      const timeout = setTimeout(() => clearHighlight(), 10000);
+      return () => clearTimeout(timeout);
+    }
+  }, [highlightedPersonId]);
 
   const dotPositions = [
     { x: SCREEN_WIDTH * 0.35, y: SCREEN_HEIGHT * 0.28 },
@@ -212,8 +313,11 @@ export default function MapScreen() {
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>{filteredScores.length} active</Text>
           </View>
+          <ScanButton />
         </View>
       </Animated.View>
+
+      {isScanning && <DiscoveryBanner />}
 
       <View style={styles.mapArea}>
         <MapDot
@@ -227,6 +331,7 @@ export default function MapScreen() {
         {filteredScores.map((scored, idx) => {
           const pos = dotPositions[idx % dotPositions.length];
           if (!pos) return null;
+          const isDiscovered = discoveredPeople.some(d => d.person.id === scored.person.id && d.notified);
           return (
             <MapDot
               key={scored.person.id}
@@ -237,6 +342,8 @@ export default function MapScreen() {
               score={scored.score}
               delay={(idx + 1) * 300}
               onPress={() => handleDotPress(scored.person.id)}
+              isHighlighted={scored.person.id === highlightedPersonId}
+              isNewlyDiscovered={isDiscovered}
             />
           );
         })}
@@ -253,6 +360,11 @@ export default function MapScreen() {
           <View style={styles.hintCard}>
             <Ionicons name="funnel" size={16} color={Colors.dark.warning} />
             <Text style={styles.hintText}>No matches at threshold {interestThreshold}. Try lowering it in settings.</Text>
+          </View>
+        ) : !isScanning ? (
+          <View style={styles.hintCard}>
+            <Ionicons name="bluetooth" size={16} color={Colors.dark.accent} />
+            <Text style={styles.hintText}>Tap the scan button to discover nearby people</Text>
           </View>
         ) : (
           <View style={styles.hintCard}>
@@ -335,6 +447,58 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_500Medium',
     color: Colors.dark.accent,
   },
+  scanBtnContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanPulseRing: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.accent,
+  },
+  scanBtnGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discoveryBanner: {
+    paddingHorizontal: 24,
+    zIndex: 10,
+  },
+  discoveryBannerInner: {
+    backgroundColor: Colors.dark.glass,
+    borderWidth: 1,
+    borderColor: Colors.dark.glassBorder,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  scanningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  scanningDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.dark.accent,
+  },
+  scanningText: {
+    fontSize: 13,
+    fontFamily: 'Outfit_500Medium',
+    color: Colors.dark.accent,
+  },
+  discoveredText: {
+    fontSize: 12,
+    fontFamily: 'Outfit_400Regular',
+    color: Colors.dark.textSecondary,
+  },
   mapArea: {
     flex: 1,
     position: 'relative',
@@ -388,6 +552,17 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 9,
     fontFamily: 'Outfit_700Bold',
+  },
+  newBadge: {
+    backgroundColor: Colors.dark.warningLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  newBadgeText: {
+    fontSize: 8,
+    fontFamily: 'Outfit_700Bold',
+    color: Colors.dark.warning,
   },
   bottomHint: {
     position: 'absolute',
