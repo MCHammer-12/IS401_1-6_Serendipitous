@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,7 +22,7 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
-import { nearbyPeople, currentUser } from '@/lib/mock-data';
+import { useUser } from '@/lib/user-context';
 import { ParticleBackground } from '@/components/ParticleBackground';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -32,12 +32,13 @@ interface MapDotProps {
   y: number;
   color: string;
   label: string;
+  score?: number;
   delay: number;
   onPress?: () => void;
   isSelf?: boolean;
 }
 
-function MapDot({ x, y, color, label, delay, onPress, isSelf }: MapDotProps) {
+function MapDot({ x, y, color, label, score, delay, onPress, isSelf }: MapDotProps) {
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.5);
   const floatY = useSharedValue(0);
@@ -85,6 +86,8 @@ function MapDot({ x, y, color, label, delay, onPress, isSelf }: MapDotProps) {
     onPress?.();
   };
 
+  const dotSize = isSelf ? 18 : score ? Math.max(12, Math.min(20, score / 5)) : 14;
+
   return (
     <Pressable
       onPress={handlePress}
@@ -104,9 +107,9 @@ function MapDot({ x, y, color, label, delay, onPress, isSelf }: MapDotProps) {
             {
               backgroundColor: color,
               shadowColor: color,
-              width: isSelf ? 18 : 14,
-              height: isSelf ? 18 : 14,
-              borderRadius: isSelf ? 9 : 7,
+              width: dotSize,
+              height: dotSize,
+              borderRadius: dotSize / 2,
             },
           ]}
         />
@@ -114,15 +117,33 @@ function MapDot({ x, y, color, label, delay, onPress, isSelf }: MapDotProps) {
           <View style={styles.selfRing} />
         )}
       </Animated.View>
-      <Text style={[styles.dotLabel, { color }]} numberOfLines={1}>{label}</Text>
+      <View style={styles.dotLabelRow}>
+        <Text style={[styles.dotLabel, { color }]} numberOfLines={1}>{label}</Text>
+        {!isSelf && score !== undefined && (
+          <View style={[styles.scoreBadge, { backgroundColor: color + '30' }]}>
+            <Text style={[styles.scoreText, { color }]}>{score}%</Text>
+          </View>
+        )}
+      </View>
     </Pressable>
   );
+}
+
+function getColorForScore(score: number): string {
+  if (score >= 60) return Colors.dark.mapDotNew;
+  if (score >= 30) return Colors.dark.secondary;
+  return Colors.dark.mapDotOther;
 }
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
-  const [activeCount] = useState(nearbyPeople.length);
+  const { filteredNearbyPeople, getSerendipityScores, interestThreshold } = useUser();
+
+  const scores = getSerendipityScores();
+  const filteredScores = scores.filter(s =>
+    filteredNearbyPeople.some(p => p.id === s.person.id)
+  );
 
   const dotPositions = [
     { x: SCREEN_WIDTH * 0.35, y: SCREEN_HEIGHT * 0.28 },
@@ -180,9 +201,17 @@ export default function MapScreen() {
           <Ionicons name="navigate" size={22} color={Colors.dark.accent} />
           <Text style={styles.headerTitle}>Nearby</Text>
         </View>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>{activeCount} active</Text>
+        <View style={styles.headerRight}>
+          {interestThreshold > 0 && (
+            <View style={styles.filterBadge}>
+              <Ionicons name="funnel" size={12} color={Colors.dark.secondary} />
+              <Text style={styles.filterText}>{interestThreshold}+</Text>
+            </View>
+          )}
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>{filteredScores.length} active</Text>
+          </View>
         </View>
       </Animated.View>
 
@@ -195,17 +224,22 @@ export default function MapScreen() {
           delay={0}
           isSelf
         />
-        {nearbyPeople.map((person, idx) => (
-          <MapDot
-            key={person.id}
-            x={dotPositions[idx].x}
-            y={dotPositions[idx].y - topPadding - 60}
-            color={idx === 0 ? Colors.dark.mapDotNew : Colors.dark.mapDotOther}
-            label={person.name}
-            delay={(idx + 1) * 300}
-            onPress={() => handleDotPress(person.id)}
-          />
-        ))}
+        {filteredScores.map((scored, idx) => {
+          const pos = dotPositions[idx % dotPositions.length];
+          if (!pos) return null;
+          return (
+            <MapDot
+              key={scored.person.id}
+              x={pos.x}
+              y={pos.y - topPadding - 60}
+              color={getColorForScore(scored.score)}
+              label={scored.person.name}
+              score={scored.score}
+              delay={(idx + 1) * 300}
+              onPress={() => handleDotPress(scored.person.id)}
+            />
+          );
+        })}
       </View>
 
       <Animated.View
@@ -215,10 +249,17 @@ export default function MapScreen() {
           { bottom: Platform.OS === 'web' ? 84 + 34 : 100 },
         ]}
       >
-        <View style={styles.hintCard}>
-          <Ionicons name="sparkles" size={16} color={Colors.dark.accent} />
-          <Text style={styles.hintText}>Tap a dot to discover someone new</Text>
-        </View>
+        {filteredScores.length === 0 ? (
+          <View style={styles.hintCard}>
+            <Ionicons name="funnel" size={16} color={Colors.dark.warning} />
+            <Text style={styles.hintText}>No matches at threshold {interestThreshold}. Try lowering it in settings.</Text>
+          </View>
+        ) : (
+          <View style={styles.hintCard}>
+            <Ionicons name="sparkles" size={16} color={Colors.dark.accent} />
+            <Text style={styles.hintText}>Tap a dot to discover someone new</Text>
+          </View>
+        )}
       </Animated.View>
     </View>
   );
@@ -249,11 +290,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerTitle: {
     fontSize: 28,
     fontFamily: 'Outfit_700Bold',
     color: Colors.dark.text,
     letterSpacing: -0.5,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.dark.secondaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  filterText: {
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.dark.secondary,
   },
   liveIndicator: {
     flexDirection: 'row',
@@ -281,8 +341,8 @@ const styles = StyleSheet.create({
   },
   dotContainer: {
     position: 'absolute',
-    width: 44,
-    height: 44,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
@@ -310,11 +370,24 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 212, 170, 0.3)',
     alignSelf: 'center',
   },
+  dotLabelRow: {
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 2,
+  },
   dotLabel: {
     fontSize: 11,
     fontFamily: 'Outfit_600SemiBold',
-    marginTop: 4,
     textAlign: 'center',
+  },
+  scoreBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  scoreText: {
+    fontSize: 9,
+    fontFamily: 'Outfit_700Bold',
   },
   bottomHint: {
     position: 'absolute',

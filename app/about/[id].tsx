@@ -15,15 +15,19 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { Avatar } from '@/components/Avatar';
-import { nearbyPeople, currentUser, getCommonInterests } from '@/lib/mock-data';
+import { nearbyPeople } from '@/lib/mock-data';
+import { useUser } from '@/lib/user-context';
 
 export default function AboutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
+  const { profile, getCommonInterestsWithPerson, getSerendipityScores } = useUser();
 
   const person = nearbyPeople.find(p => p.id === id);
-  const commonInterests = person ? getCommonInterests(person.id) : [];
+  const commonInterests = person ? getCommonInterestsWithPerson(person.id) : [];
+  const scores = getSerendipityScores();
+  const personScore = scores.find(s => s.person.id === id);
 
   if (!person) {
     return (
@@ -69,6 +73,18 @@ export default function AboutScreen() {
           About
         </Animated.Text>
 
+        {personScore && (
+          <Animated.View
+            entering={FadeIn.delay(100).duration(400)}
+            style={styles.scoreBanner}
+          >
+            <Ionicons name="sparkles" size={18} color={Colors.dark.accent} />
+            <Text style={styles.scoreBannerText}>
+              Serendipity Score: <Text style={styles.scoreBannerNumber}>{personScore.score}%</Text>
+            </Text>
+          </Animated.View>
+        )}
+
         <View style={styles.compareSection}>
           <Animated.View
             entering={FadeInLeft.delay(200).duration(500)}
@@ -109,24 +125,59 @@ export default function AboutScreen() {
             style={styles.personCard}
           >
             <Avatar
-              uri={currentUser.avatarUrl}
+              uri={profile.avatarUrl}
               size={90}
               borderColor={Colors.dark.accent}
             />
             <Text style={styles.personName}>Me</Text>
             <View style={styles.detailRow}>
               <Ionicons name="location" size={13} color={Colors.dark.textMuted} />
-              <Text style={styles.detailText}>{currentUser.hometown}</Text>
+              <Text style={styles.detailText}>{profile.hometown}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="book" size={13} color={Colors.dark.textMuted} />
-              <Text style={styles.detailText}>{currentUser.major}</Text>
+              <Text style={styles.detailText}>{profile.major}</Text>
             </View>
             <View style={styles.schoolTag}>
-              <Text style={styles.schoolTagText}>{currentUser.school}</Text>
+              <Text style={styles.schoolTagText}>{profile.school}</Text>
             </View>
           </Animated.View>
         </View>
+
+        {personScore && (
+          <Animated.View
+            entering={FadeInUp.delay(400).duration(400)}
+            style={styles.matchDetails}
+          >
+            <Text style={styles.matchDetailsTitle}>Why you match</Text>
+            <View style={styles.matchGrid}>
+              {personScore.sameSchool && (
+                <View style={styles.matchTag}>
+                  <Ionicons name="school" size={13} color={Colors.dark.secondary} />
+                  <Text style={styles.matchTagText}>Same school</Text>
+                </View>
+              )}
+              {personScore.sameMajor && (
+                <View style={styles.matchTag}>
+                  <Ionicons name="book" size={13} color={Colors.dark.accent} />
+                  <Text style={styles.matchTagText}>Same major</Text>
+                </View>
+              )}
+              {personScore.sameHometown && (
+                <View style={styles.matchTag}>
+                  <Ionicons name="location" size={13} color={Colors.dark.pink} />
+                  <Text style={styles.matchTagText}>Same hometown</Text>
+                </View>
+              )}
+              {commonInterests.length > 0 && (
+                <View style={styles.matchTag}>
+                  <Ionicons name="heart" size={13} color={Colors.dark.warning} />
+                  <Text style={styles.matchTagText}>{commonInterests.length} shared {commonInterests.length === 1 ? 'interest' : 'interests'}</Text>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
 
         {commonInterests.length > 0 && (
           <Animated.View
@@ -215,7 +266,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 50,
     alignItems: 'center',
-    gap: 28,
+    gap: 24,
   },
   title: {
     fontSize: 32,
@@ -223,6 +274,27 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     textAlign: 'center',
     letterSpacing: -0.5,
+  },
+  scoreBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.dark.accentLight,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 170, 0.2)',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  scoreBannerText: {
+    fontSize: 15,
+    fontFamily: 'Outfit_500Medium',
+    color: Colors.dark.textSecondary,
+  },
+  scoreBannerNumber: {
+    fontFamily: 'Outfit_700Bold',
+    color: Colors.dark.accent,
+    fontSize: 18,
   },
   compareSection: {
     flexDirection: 'row',
@@ -292,6 +364,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 6,
+  },
+  matchDetails: {
+    width: '100%',
+    backgroundColor: Colors.dark.glass,
+    borderWidth: 1,
+    borderColor: Colors.dark.glassBorder,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  matchDetailsTitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.dark.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  matchGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  matchTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.dark.surfaceHover,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  matchTagText: {
+    fontSize: 13,
+    fontFamily: 'Outfit_500Medium',
+    color: Colors.dark.text,
   },
   commonSection: {
     width: '100%',

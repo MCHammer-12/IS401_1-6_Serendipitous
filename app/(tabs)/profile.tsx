@@ -10,11 +10,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Colors from '@/constants/colors';
 import { Avatar } from '@/components/Avatar';
-import { currentUser } from '@/lib/mock-data';
+import { useUser } from '@/lib/user-context';
 
 function InterestChip({ text, index }: { text: string; index: number }) {
   return (
@@ -30,11 +31,13 @@ function InterestChip({ text, index }: { text: string; index: number }) {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
+  const { profile } = useUser();
 
   const handleSettings = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    router.push('/settings');
   };
 
   return (
@@ -61,21 +64,21 @@ export default function ProfileScreen() {
         <Animated.View entering={FadeIn.duration(600)} style={styles.profileSection}>
           <View style={styles.avatarGlow}>
             <Avatar
-              uri={currentUser.avatarUrl}
+              uri={profile.avatarUrl}
               size={110}
               borderColor={Colors.dark.accent}
             />
           </View>
 
-          <Text style={styles.name}>{currentUser.name}</Text>
+          <Text style={styles.name}>{profile.name}</Text>
 
           <View style={styles.schoolBadge}>
             <Ionicons name="school" size={14} color={Colors.dark.secondary} />
-            <Text style={styles.schoolText}>{currentUser.school}</Text>
+            <Text style={styles.schoolText}>{profile.school}</Text>
           </View>
 
           <Text style={styles.joinDate}>
-            member since {currentUser.joinDate}
+            member since {profile.joinDate}
           </Text>
         </Animated.View>
 
@@ -84,17 +87,17 @@ export default function ProfileScreen() {
           style={styles.statsRow}
         >
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{currentUser.connectionCount}</Text>
+            <Text style={styles.statNumber}>{profile.connectionCount}</Text>
             <Text style={styles.statLabel}>Connections</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{currentUser.interests.length}</Text>
+            <Text style={styles.statNumber}>{profile.interests.length}</Text>
             <Text style={styles.statLabel}>Interests</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{currentUser.major.split(' ').length > 1 ? currentUser.major.split(' ').map(w => w[0]).join('') : currentUser.major.substring(0, 3)}</Text>
+            <Text style={styles.statNumber}>{profile.major.split(' ').length > 1 ? profile.major.split(' ').map(w => w[0]).join('') : profile.major.substring(0, 3)}</Text>
             <Text style={styles.statLabel}>Major</Text>
           </View>
         </Animated.View>
@@ -104,7 +107,7 @@ export default function ProfileScreen() {
           style={styles.quoteCard}
         >
           <Ionicons name="chatbubble-ellipses" size={18} color={Colors.dark.pink} />
-          <Text style={styles.quoteText}>"{currentUser.quote}"</Text>
+          <Text style={styles.quoteText}>"{profile.quote}"</Text>
         </Animated.View>
 
         <Animated.View
@@ -116,7 +119,7 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Interests</Text>
           </View>
           <View style={styles.chipContainer}>
-            {currentUser.interests.map((interest, idx) => (
+            {profile.interests.map((interest, idx) => (
               <InterestChip key={interest} text={interest} index={idx} />
             ))}
           </View>
@@ -128,11 +131,11 @@ export default function ProfileScreen() {
         >
           <View style={styles.infoRow}>
             <Ionicons name="location" size={18} color={Colors.dark.textMuted} />
-            <Text style={styles.infoText}>{currentUser.hometown}</Text>
+            <Text style={styles.infoText}>{profile.hometown}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="book" size={18} color={Colors.dark.textMuted} />
-            <Text style={styles.infoText}>{currentUser.major}</Text>
+            <Text style={styles.infoText}>{profile.major}</Text>
           </View>
         </Animated.View>
       </ScrollView>

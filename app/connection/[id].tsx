@@ -25,6 +25,7 @@ import Animated, {
 import Colors from '@/constants/colors';
 import { Avatar } from '@/components/Avatar';
 import { nearbyPeople } from '@/lib/mock-data';
+import { useUser } from '@/lib/user-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -32,8 +33,11 @@ export default function ConnectionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
+  const { getSerendipityScores } = useUser();
 
   const person = nearbyPeople.find(p => p.id === id);
+  const scores = getSerendipityScores();
+  const personScore = scores.find(s => s.person.id === id);
 
   const glowScale = useSharedValue(1);
   const btnScale = useSharedValue(1);
@@ -141,6 +145,18 @@ export default function ConnectionScreen() {
           </View>
         </Animated.View>
 
+        {personScore && (
+          <Animated.View
+            entering={FadeInUp.delay(450).duration(500)}
+            style={styles.scorePill}
+          >
+            <Ionicons name="sparkles" size={14} color={Colors.dark.accent} />
+            <Text style={styles.scoreText}>
+              {personScore.score}% match
+            </Text>
+          </Animated.View>
+        )}
+
         <Animated.View
           entering={FadeInUp.delay(500).duration(500)}
           style={styles.quoteSection}
@@ -206,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 28,
+    gap: 24,
   },
   title: {
     fontSize: 32,
@@ -286,6 +302,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Outfit_700Bold',
     color: Colors.dark.text,
+  },
+  scorePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.dark.accentLight,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 170, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  scoreText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.dark.accent,
   },
   quoteSection: {
     backgroundColor: Colors.dark.glass,
