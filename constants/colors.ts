@@ -1,12 +1,33 @@
-// template
-const tintColorLight = "#2f95dc";
-
-export default {
-  light: {
-    text: "#000",
-    background: "#fff",
-    tint: tintColorLight,
-    tabIconDefault: "#ccc",
-    tabIconSelected: tintColorLight,
+const Colors = {
+  dark: {
+    background: '#0A0A0F',
+    surface: 'rgba(255, 255, 255, 0.06)',
+    surfaceHover: 'rgba(255, 255, 255, 0.1)',
+    glass: 'rgba(255, 255, 255, 0.08)',
+    glassBorder: 'rgba(255, 255, 255, 0.12)',
+    glassHighlight: 'rgba(255, 255, 255, 0.15)',
+    text: '#FFFFFF',
+    textSecondary: 'rgba(255, 255, 255, 0.6)',
+    textMuted: 'rgba(255, 255, 255, 0.35)',
+    accent: '#00D4AA',
+    accentLight: 'rgba(0, 212, 170, 0.15)',
+    accentGlow: 'rgba(0, 212, 170, 0.4)',
+    secondary: '#6C63FF',
+    secondaryLight: 'rgba(108, 99, 255, 0.15)',
+    warning: '#FF6B6B',
+    warningLight: 'rgba(255, 107, 107, 0.15)',
+    pink: '#FF69B4',
+    pinkLight: 'rgba(255, 105, 180, 0.15)',
+    tabBar: 'rgba(10, 10, 15, 0.85)',
+    tabActive: '#00D4AA',
+    tabInactive: 'rgba(255, 255, 255, 0.35)',
+    cardGradientStart: 'rgba(255, 255, 255, 0.1)',
+    cardGradientEnd: 'rgba(255, 255, 255, 0.03)',
+    divider: 'rgba(255, 255, 255, 0.08)',
+    mapDotSelf: '#00D4AA',
+    mapDotOther: '#6C63FF',
+    mapDotNew: '#FF69B4',
   },
 };
+
+export default Colors;
