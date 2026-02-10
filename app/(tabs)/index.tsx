@@ -38,8 +38,8 @@ function getColorForScore(score: number): string {
 }
 
 function getPlanetSize(score: number): number {
-  const minSize = 40;
-  const maxSize = 100;
+  const minSize = 50;
+  const maxSize = 120;
   const t = Math.pow(score / 100, 1.8);
   return minSize + t * (maxSize - minSize);
 }
@@ -63,7 +63,7 @@ function generateSpherePositions(count: number, sphereRadius: number): SpherePoi
     const seed3 = seededRandom(i * 331.771 + 3);
     const theta = seed1 * Math.PI * 2;
     const phi = Math.acos(2 * seed2 - 1);
-    const r = sphereRadius * (0.45 + seed3 * 0.55);
+    const r = sphereRadius * (0.65 + seed3 * 0.35);
     points.push({ theta, phi, radius: r });
   }
   return points;
@@ -455,8 +455,8 @@ export default function MapScreen() {
     stopMomentum();
     let currentVX = vx;
     let currentVY = vy;
-    const friction = 0.92;
-    const minVelocity = 0.0001;
+    const friction = 0.96;
+    const minVelocity = 0.00005;
 
     momentumRef.current = setInterval(() => {
       currentVX *= friction;
@@ -468,7 +468,7 @@ export default function MapScreen() {
       }
 
       setRotationY(prev => prev + currentVX);
-      setRotationX(prev => Math.max(-1.4, Math.min(1.4, prev + currentVY)));
+      setRotationX(prev => prev + currentVY);
     }, 16);
   };
 
@@ -492,7 +492,7 @@ export default function MapScreen() {
       onPanResponderMove: (_, gestureState) => {
         const sensitivity = 0.012;
         const newRotY = lastRotY.current + gestureState.dx * sensitivity;
-        const newRotX = Math.max(-1.4, Math.min(1.4, lastRotX.current + gestureState.dy * sensitivity));
+        const newRotX = lastRotX.current + gestureState.dy * sensitivity;
         setRotationY(newRotY);
         setRotationX(newRotX);
 
@@ -520,7 +520,7 @@ export default function MapScreen() {
   const centerY = topPadding + headerHeight + availableHeight * 0.42;
   const localCenterY = centerY - topPadding - headerHeight;
 
-  const sphereRadius = Math.min(SCREEN_WIDTH, availableHeight) * 0.38;
+  const sphereRadius = Math.min(SCREEN_WIDTH, availableHeight) * 0.48;
 
   const spherePositions = useMemo(() => {
     return generateSpherePositions(filteredScores.length, sphereRadius);
