@@ -38,8 +38,8 @@ function getColorForScore(score: number): string {
 }
 
 function getPlanetSize(score: number): number {
-  const minSize = 24;
-  const maxSize = 80;
+  const minSize = 40;
+  const maxSize = 100;
   const t = Math.pow(score / 100, 1.8);
   return minSize + t * (maxSize - minSize);
 }
@@ -418,6 +418,12 @@ export default function MapScreen() {
   const rotYRef = useRef(rotationY);
   const lastRotX = useRef(rotationX);
   const lastRotY = useRef(rotationY);
+  const velocityX = useRef(0);
+  const velocityY = useRef(0);
+  const momentumRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastMoveTime = useRef(0);
+  const prevDx = useRef(0);
+  const prevDy = useRef(0);
 
   useEffect(() => {
     rotXRef.current = rotationX;
@@ -438,21 +444,71 @@ export default function MapScreen() {
     }
   }, [highlightedPersonId]);
 
+  const stopMomentum = () => {
+    if (momentumRef.current) {
+      clearInterval(momentumRef.current);
+      momentumRef.current = null;
+    }
+  };
+
+  const startMomentum = (vx: number, vy: number) => {
+    stopMomentum();
+    let currentVX = vx;
+    let currentVY = vy;
+    const friction = 0.92;
+    const minVelocity = 0.0001;
+
+    momentumRef.current = setInterval(() => {
+      currentVX *= friction;
+      currentVY *= friction;
+
+      if (Math.abs(currentVX) < minVelocity && Math.abs(currentVY) < minVelocity) {
+        stopMomentum();
+        return;
+      }
+
+      setRotationY(prev => prev + currentVX);
+      setRotationX(prev => Math.max(-1.4, Math.min(1.4, prev + currentVY)));
+    }, 16);
+  };
+
+  useEffect(() => {
+    return () => stopMomentum();
+  }, []);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5,
+        Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3,
       onPanResponderGrant: () => {
+        stopMomentum();
         lastRotX.current = rotXRef.current;
         lastRotY.current = rotYRef.current;
+        prevDx.current = 0;
+        prevDy.current = 0;
+        lastMoveTime.current = Date.now();
       },
       onPanResponderMove: (_, gestureState) => {
-        const sensitivity = 0.005;
+        const sensitivity = 0.012;
         const newRotY = lastRotY.current + gestureState.dx * sensitivity;
         const newRotX = Math.max(-1.4, Math.min(1.4, lastRotX.current + gestureState.dy * sensitivity));
         setRotationY(newRotY);
         setRotationX(newRotX);
+
+        const now = Date.now();
+        const dt = Math.max(1, now - lastMoveTime.current);
+        velocityX.current = ((gestureState.dx - prevDx.current) * sensitivity) / (dt / 16);
+        velocityY.current = ((gestureState.dy - prevDy.current) * sensitivity) / (dt / 16);
+        prevDx.current = gestureState.dx;
+        prevDy.current = gestureState.dy;
+        lastMoveTime.current = now;
+      },
+      onPanResponderRelease: () => {
+        const speed = Math.sqrt(velocityX.current ** 2 + velocityY.current ** 2);
+        if (speed > 0.001) {
+          startMomentum(velocityX.current, velocityY.current);
+        }
       },
     })
   ).current;
