@@ -37,10 +37,41 @@ function getColorForScore(score: number): string {
   return Colors.dark.mapDotOther;
 }
 
+function getPlanetSize(score: number): number {
+  const minSize = 24;
+  const maxSize = 80;
+  const t = Math.pow(score / 100, 1.8);
+  return minSize + t * (maxSize - minSize);
+}
+
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
+
+interface SpherePoint {
+  theta: number;
+  phi: number;
+  radius: number;
+}
+
+function generateSpherePositions(count: number, sphereRadius: number): SpherePoint[] {
+  const points: SpherePoint[] = [];
+  for (let i = 0; i < count; i++) {
+    const seed1 = seededRandom(i * 137.508 + 1);
+    const seed2 = seededRandom(i * 237.113 + 2);
+    const seed3 = seededRandom(i * 331.771 + 3);
+    const theta = seed1 * Math.PI * 2;
+    const phi = Math.acos(2 * seed2 - 1);
+    const r = sphereRadius * (0.45 + seed3 * 0.55);
+    points.push({ theta, phi, radius: r });
+  }
+  return points;
+}
+
 interface OrbitingPlanetProps {
   scored: SerendipityScore;
-  orbitRadius: number;
-  angleOffset: number;
+  spherePoint: SpherePoint;
   rotationX: number;
   rotationY: number;
   centerX: number;
@@ -53,8 +84,7 @@ interface OrbitingPlanetProps {
 
 function OrbitingPlanet({
   scored,
-  orbitRadius,
-  angleOffset,
+  spherePoint,
   rotationX,
   rotationY,
   centerX,
@@ -81,18 +111,20 @@ function OrbitingPlanet({
     transform: [{ scale: pulseScale.value }],
   }));
 
-  const planetSize = Math.max(36, Math.min(64, scored.score * 0.65));
+  const planetSize = getPlanetSize(scored.score);
   const color = isHighlighted ? Colors.dark.warning : getColorForScore(scored.score);
 
-  const theta = angleOffset + autoAngle;
+  const { theta, phi, radius } = spherePoint;
+  const currentTheta = theta + autoAngle;
+
+  const x3d = radius * Math.sin(phi) * Math.cos(currentTheta);
+  const y3d = radius * Math.cos(phi);
+  const z3d = radius * Math.sin(phi) * Math.sin(currentTheta);
+
   const cosRX = Math.cos(rotationX);
   const sinRX = Math.sin(rotationX);
   const cosRY = Math.cos(rotationY);
   const sinRY = Math.sin(rotationY);
-
-  const x3d = orbitRadius * Math.cos(theta);
-  const y3d = 0;
-  const z3d = orbitRadius * Math.sin(theta);
 
   const x1 = x3d * cosRY + z3d * sinRY;
   const z1 = -x3d * sinRY + z3d * cosRY;
@@ -103,8 +135,10 @@ function OrbitingPlanet({
   const scale3d = perspective / (perspective + z2);
   const screenX = centerX + x1 * scale3d;
   const screenY = centerY + y1 * scale3d;
-  const depthOpacity = Math.max(0.3, Math.min(1, scale3d));
-  const depthScale = Math.max(0.5, scale3d);
+  const depthOpacity = Math.max(0.25, Math.min(1, 0.4 + scale3d * 0.6));
+  const depthScale = Math.max(0.4, scale3d);
+
+  const isBehindCenter = z2 > 0;
 
   const handlePress = () => {
     if (Platform.OS !== 'web') {
@@ -112,6 +146,8 @@ function OrbitingPlanet({
     }
     onPress();
   };
+
+  const zIndex = Math.round(scale3d * 1000);
 
   return (
     <Pressable
@@ -121,7 +157,7 @@ function OrbitingPlanet({
         {
           left: screenX - planetSize / 2 - 8,
           top: screenY - planetSize / 2 - 8,
-          zIndex: Math.round(scale3d * 100),
+          zIndex,
           opacity: depthOpacity,
         },
       ]}
@@ -148,6 +184,7 @@ function OrbitingPlanet({
               borderRadius: planetSize / 2,
               borderColor: isHighlighted ? Colors.dark.warning : color,
               shadowColor: color,
+              borderWidth: planetSize > 50 ? 3 : 2,
             },
           ]}
         >
@@ -162,14 +199,16 @@ function OrbitingPlanet({
             transition={300}
           />
         </View>
-        <View style={styles.planetLabelRow}>
-          <Text style={[styles.planetLabel, { color }]} numberOfLines={1}>
-            {scored.person.name}
-          </Text>
-          <View style={[styles.planetScoreBadge, { backgroundColor: color + '30' }]}>
-            <Text style={[styles.planetScoreText, { color }]}>{scored.score}%</Text>
+        {!isBehindCenter && (
+          <View style={styles.planetLabelRow}>
+            <Text style={[styles.planetLabel, { color, fontSize: planetSize > 50 ? 12 : 10 }]} numberOfLines={1}>
+              {scored.person.name}
+            </Text>
+            <View style={[styles.planetScoreBadge, { backgroundColor: color + '30' }]}>
+              <Text style={[styles.planetScoreText, { color }]}>{scored.score}%</Text>
+            </View>
           </View>
-        </View>
+        )}
         {isNewlyDiscovered && (
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>NEW</Text>
@@ -263,48 +302,98 @@ function DiscoveryBanner() {
   );
 }
 
-function OrbitRing({ radius, centerX, centerY, rotationX, rotationY, color }: {
-  radius: number; centerX: number; centerY: number; rotationX: number; rotationY: number; color: string;
+function SphereWireframe({ sphereRadius, centerX, centerY, rotationX, rotationY }: {
+  sphereRadius: number; centerX: number; centerY: number; rotationX: number; rotationY: number;
 }) {
-  const points = 60;
   const perspective = 600;
-
   const cosRX = Math.cos(rotationX);
   const sinRX = Math.sin(rotationX);
   const cosRY = Math.cos(rotationY);
   const sinRY = Math.sin(rotationY);
 
-  const dotElements = [];
-  for (let i = 0; i < points; i++) {
-    const theta = (i / points) * Math.PI * 2;
-    const x3d = radius * Math.cos(theta);
-    const z3d = radius * Math.sin(theta);
+  const dotElements: React.ReactElement[] = [];
 
-    const x1 = x3d * cosRY + z3d * sinRY;
-    const z1 = -x3d * sinRY + z3d * cosRY;
-    const y1 = -z1 * sinRX;
-    const z2 = z1 * cosRX;
+  const rings = [
+    { phi: Math.PI * 0.5, color: 'rgba(0, 212, 170, 0.06)', label: 'equator' },
+    { phi: Math.PI * 0.3, color: 'rgba(108, 99, 255, 0.05)', label: 'upper' },
+    { phi: Math.PI * 0.7, color: 'rgba(108, 99, 255, 0.05)', label: 'lower' },
+  ];
 
-    const scale3d = perspective / (perspective + z2);
-    const sx = centerX + x1 * scale3d;
-    const sy = centerY + y1 * scale3d;
-    const opacity = Math.max(0.1, scale3d * 0.4);
+  rings.forEach((ring) => {
+    const points = 50;
+    const ringRadius = sphereRadius * Math.sin(ring.phi);
+    const ringY = sphereRadius * Math.cos(ring.phi);
 
-    dotElements.push(
-      <View
-        key={i}
-        style={{
-          position: 'absolute',
-          left: sx - 1,
-          top: sy - 1,
-          width: 2,
-          height: 2,
-          borderRadius: 1,
-          backgroundColor: color,
-          opacity,
-        }}
-      />
-    );
+    for (let i = 0; i < points; i++) {
+      const theta = (i / points) * Math.PI * 2;
+      const x3d = ringRadius * Math.cos(theta);
+      const z3d = ringRadius * Math.sin(theta);
+      const y3d = ringY;
+
+      const x1 = x3d * cosRY + z3d * sinRY;
+      const z1 = -x3d * sinRY + z3d * cosRY;
+      const y1 = y3d * cosRX - z1 * sinRX;
+      const z2 = y3d * sinRX + z1 * cosRX;
+
+      const scale3d = perspective / (perspective + z2);
+      const sx = centerX + x1 * scale3d;
+      const sy = centerY + y1 * scale3d;
+      const opacity = Math.max(0.03, scale3d * 0.12);
+
+      dotElements.push(
+        <View
+          key={`${ring.label}-${i}`}
+          style={{
+            position: 'absolute',
+            left: sx - 1,
+            top: sy - 1,
+            width: 2,
+            height: 2,
+            borderRadius: 1,
+            backgroundColor: ring.color,
+            opacity,
+          }}
+        />
+      );
+    }
+  });
+
+  const meridianCount = 3;
+  const meridianPoints = 40;
+  for (let m = 0; m < meridianCount; m++) {
+    const mTheta = (m / meridianCount) * Math.PI;
+    for (let i = 0; i < meridianPoints; i++) {
+      const mPhi = (i / meridianPoints) * Math.PI * 2;
+      const x3d = sphereRadius * Math.cos(mTheta) * Math.sin(mPhi);
+      const y3d = sphereRadius * Math.cos(mPhi);
+      const z3d = sphereRadius * Math.sin(mTheta) * Math.sin(mPhi);
+
+      const x1 = x3d * cosRY + z3d * sinRY;
+      const z1 = -x3d * sinRY + z3d * cosRY;
+      const y1 = y3d * cosRX - z1 * sinRX;
+      const z2 = y3d * sinRX + z1 * cosRX;
+
+      const scale3d = perspective / (perspective + z2);
+      const sx = centerX + x1 * scale3d;
+      const sy = centerY + y1 * scale3d;
+      const opacity = Math.max(0.02, scale3d * 0.08);
+
+      dotElements.push(
+        <View
+          key={`meridian-${m}-${i}`}
+          style={{
+            position: 'absolute',
+            left: sx - 0.75,
+            top: sy - 0.75,
+            width: 1.5,
+            height: 1.5,
+            borderRadius: 0.75,
+            backgroundColor: 'rgba(0, 212, 170, 0.04)',
+            opacity,
+          }}
+        />
+      );
+    }
   }
 
   return <>{dotElements}</>;
@@ -337,7 +426,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setAutoAngle(prev => prev + 0.006);
+      setAutoAngle(prev => prev + 0.004);
     }, 50);
     return () => clearInterval(interval);
   }, []);
@@ -361,7 +450,7 @@ export default function MapScreen() {
       onPanResponderMove: (_, gestureState) => {
         const sensitivity = 0.005;
         const newRotY = lastRotY.current + gestureState.dx * sensitivity;
-        const newRotX = Math.max(-1.2, Math.min(1.2, lastRotX.current + gestureState.dy * sensitivity));
+        const newRotX = Math.max(-1.4, Math.min(1.4, lastRotX.current + gestureState.dy * sensitivity));
         setRotationY(newRotY);
         setRotationX(newRotX);
       },
@@ -373,20 +462,21 @@ export default function MapScreen() {
   const availableHeight = SCREEN_HEIGHT - topPadding - headerHeight - tabBarHeight;
   const centerX = SCREEN_WIDTH / 2;
   const centerY = topPadding + headerHeight + availableHeight * 0.42;
+  const localCenterY = centerY - topPadding - headerHeight;
 
-  const orbitRadii = useMemo(() => {
-    const base = Math.min(SCREEN_WIDTH, availableHeight) * 0.28;
-    return filteredScores.map((_, idx) => {
-      const ring = Math.floor(idx / 2);
-      return base + ring * 50;
-    });
-  }, [filteredScores.length, availableHeight]);
+  const sphereRadius = Math.min(SCREEN_WIDTH, availableHeight) * 0.38;
+
+  const spherePositions = useMemo(() => {
+    return generateSpherePositions(filteredScores.length, sphereRadius);
+  }, [filteredScores.length, sphereRadius]);
 
   const handleDotPress = (personId: string) => {
     router.push({ pathname: '/connection/[id]', params: { id: personId } });
   };
 
   const selfAvatarSize = 72;
+  const perspective = 600;
+  const selfZIndex = Math.round((perspective / perspective) * 1000);
 
   return (
     <View style={[styles.container, { paddingTop: topPadding }]}>
@@ -420,24 +510,21 @@ export default function MapScreen() {
       {isScanning && <DiscoveryBanner />}
 
       <View style={styles.solarSystem} {...panResponder.panHandlers}>
-        {orbitRadii.filter((v, i, a) => a.indexOf(v) === i).map((radius, idx) => (
-          <OrbitRing
-            key={`ring-${idx}`}
-            radius={radius}
-            centerX={centerX}
-            centerY={centerY - topPadding - headerHeight}
-            rotationX={rotationX}
-            rotationY={rotationY}
-            color={idx === 0 ? 'rgba(0, 212, 170, 0.15)' : idx === 1 ? 'rgba(108, 99, 255, 0.1)' : 'rgba(255, 105, 180, 0.08)'}
-          />
-        ))}
+        <SphereWireframe
+          sphereRadius={sphereRadius}
+          centerX={centerX}
+          centerY={localCenterY}
+          rotationX={rotationX}
+          rotationY={rotationY}
+        />
 
         <View
           style={[
             styles.selfContainer,
             {
               left: centerX - selfAvatarSize / 2,
-              top: centerY - topPadding - headerHeight - selfAvatarSize / 2,
+              top: localCenterY - selfAvatarSize / 2,
+              zIndex: selfZIndex,
             },
           ]}
         >
@@ -454,18 +541,16 @@ export default function MapScreen() {
         </View>
 
         {filteredScores.map((scored, idx) => {
-          const angleOffset = (idx / Math.max(filteredScores.length, 1)) * Math.PI * 2;
           const isDiscovered = discoveredPeople.some(d => d.person.id === scored.person.id && d.notified);
           return (
             <OrbitingPlanet
               key={scored.person.id}
               scored={scored}
-              orbitRadius={orbitRadii[idx] || 100}
-              angleOffset={angleOffset}
+              spherePoint={spherePositions[idx] || { theta: 0, phi: Math.PI / 2, radius: sphereRadius * 0.5 }}
               rotationX={rotationX}
               rotationY={rotationY}
               centerX={centerX}
-              centerY={centerY - topPadding - headerHeight}
+              centerY={localCenterY}
               onPress={() => handleDotPress(scored.person.id)}
               isHighlighted={scored.person.id === highlightedPersonId}
               isNewlyDiscovered={isDiscovered}
@@ -625,7 +710,6 @@ const styles = StyleSheet.create({
   selfContainer: {
     position: 'absolute',
     alignItems: 'center',
-    zIndex: 200,
   },
   selfGlow: {
     position: 'absolute',
@@ -671,7 +755,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   planetImageWrap: {
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 },
@@ -685,7 +768,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   planetLabel: {
-    fontSize: 11,
     fontFamily: 'Outfit_600SemiBold',
     textAlign: 'center',
   },
