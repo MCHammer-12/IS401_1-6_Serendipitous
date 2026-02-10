@@ -42,6 +42,9 @@ export default function AboutScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     router.dismissAll();
+    setTimeout(() => {
+      router.push({ pathname: '/message/[id]', params: { id: person.id } });
+    }, 100);
   };
 
   const handleClose = () => {

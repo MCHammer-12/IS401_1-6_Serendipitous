@@ -14,6 +14,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "map", selected: "map.fill" }} />
         <Label>Map</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="events">
+        <Icon sf={{ default: "calendar", selected: "calendar" }} />
+        <Label>Events</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="friends">
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
         <Label>Friends</Label>
@@ -69,6 +73,15 @@ function ClassicTabLayout() {
           title: "Map",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: "Events",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />

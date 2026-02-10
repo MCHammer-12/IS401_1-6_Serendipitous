@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,18 +6,19 @@ import {
   Platform,
   Dimensions,
   Pressable,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
-  withDelay,
   Easing,
   FadeIn,
   FadeInUp,
@@ -26,110 +27,150 @@ import Colors from '@/constants/colors';
 import { useUser } from '@/lib/user-context';
 import { useDiscovery } from '@/lib/discovery-context';
 import { ParticleBackground } from '@/components/ParticleBackground';
+import type { SerendipityScore } from '@/lib/user-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface MapDotProps {
-  x: number;
-  y: number;
-  color: string;
-  label: string;
-  score?: number;
-  delay: number;
-  onPress?: () => void;
-  isSelf?: boolean;
-  isHighlighted?: boolean;
-  isNewlyDiscovered?: boolean;
+function getColorForScore(score: number): string {
+  if (score >= 60) return Colors.dark.mapDotNew;
+  if (score >= 30) return Colors.dark.secondary;
+  return Colors.dark.mapDotOther;
 }
 
-function MapDot({ x, y, color, label, score, delay, onPress, isSelf, isHighlighted, isNewlyDiscovered }: MapDotProps) {
+interface OrbitingPlanetProps {
+  scored: SerendipityScore;
+  orbitRadius: number;
+  angleOffset: number;
+  rotationX: number;
+  rotationY: number;
+  centerX: number;
+  centerY: number;
+  onPress: () => void;
+  isHighlighted: boolean;
+  isNewlyDiscovered: boolean;
+  autoAngle: number;
+}
+
+function OrbitingPlanet({
+  scored,
+  orbitRadius,
+  angleOffset,
+  rotationX,
+  rotationY,
+  centerX,
+  centerY,
+  onPress,
+  isHighlighted,
+  isNewlyDiscovered,
+  autoAngle,
+}: OrbitingPlanetProps) {
   const pulseScale = useSharedValue(1);
-  const pulseOpacity = useSharedValue(0.5);
-  const floatY = useSharedValue(0);
 
   useEffect(() => {
-    pulseScale.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(isHighlighted ? 3 : 2.2, { duration: isHighlighted ? 1200 : 2000, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
-    );
-    pulseOpacity.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(0, { duration: isHighlighted ? 1200 : 2000, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
-    );
-    floatY.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(-4, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
+    pulseScale.value = withRepeat(
+      withTiming(isHighlighted ? 1.4 : 1.15, {
+        duration: isHighlighted ? 800 : 2000,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1,
+      true
     );
   }, [isHighlighted]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
-    opacity: pulseOpacity.value,
   }));
 
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: floatY.value }],
-  }));
+  const planetSize = Math.max(36, Math.min(64, scored.score * 0.65));
+  const color = isHighlighted ? Colors.dark.warning : getColorForScore(scored.score);
+
+  const theta = angleOffset + autoAngle;
+  const cosRX = Math.cos(rotationX);
+  const sinRX = Math.sin(rotationX);
+  const cosRY = Math.cos(rotationY);
+  const sinRY = Math.sin(rotationY);
+
+  const x3d = orbitRadius * Math.cos(theta);
+  const y3d = 0;
+  const z3d = orbitRadius * Math.sin(theta);
+
+  const x1 = x3d * cosRY + z3d * sinRY;
+  const z1 = -x3d * sinRY + z3d * cosRY;
+  const y1 = y3d * cosRX - z1 * sinRX;
+  const z2 = y3d * sinRX + z1 * cosRX;
+
+  const perspective = 600;
+  const scale3d = perspective / (perspective + z2);
+  const screenX = centerX + x1 * scale3d;
+  const screenY = centerY + y1 * scale3d;
+  const depthOpacity = Math.max(0.3, Math.min(1, scale3d));
+  const depthScale = Math.max(0.5, scale3d);
 
   const handlePress = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    onPress?.();
+    onPress();
   };
-
-  const dotSize = isSelf ? 18 : isHighlighted ? 22 : score ? Math.max(12, Math.min(20, score / 5)) : 14;
-  const dotColor = isHighlighted ? Colors.dark.warning : color;
 
   return (
     <Pressable
       onPress={handlePress}
-      style={[styles.dotContainer, { left: x - 28, top: y - 28 }]}
+      style={[
+        styles.planetContainer,
+        {
+          left: screenX - planetSize / 2 - 8,
+          top: screenY - planetSize / 2 - 8,
+          zIndex: Math.round(scale3d * 100),
+          opacity: depthOpacity,
+        },
+      ]}
     >
-      <Animated.View style={floatStyle}>
+      <View style={{ transform: [{ scale: depthScale }], alignItems: 'center' }}>
         <Animated.View
           style={[
-            styles.dotPulse,
+            styles.planetGlow,
             pulseStyle,
-            { backgroundColor: dotColor },
+            {
+              width: planetSize + 16,
+              height: planetSize + 16,
+              borderRadius: (planetSize + 16) / 2,
+              backgroundColor: color + '25',
+            },
           ]}
         />
         <View
           style={[
-            styles.dot,
+            styles.planetImageWrap,
             {
-              backgroundColor: dotColor,
-              shadowColor: dotColor,
-              width: dotSize,
-              height: dotSize,
-              borderRadius: dotSize / 2,
+              width: planetSize,
+              height: planetSize,
+              borderRadius: planetSize / 2,
+              borderColor: isHighlighted ? Colors.dark.warning : color,
+              shadowColor: color,
             },
           ]}
-        />
-        {isSelf && (
-          <View style={styles.selfRing} />
-        )}
-      </Animated.View>
-      <View style={styles.dotLabelRow}>
-        <Text style={[styles.dotLabel, { color: dotColor }]} numberOfLines={1}>{label}</Text>
-        {!isSelf && score !== undefined && (
-          <View style={[styles.scoreBadge, { backgroundColor: dotColor + '30' }]}>
-            <Text style={[styles.scoreText, { color: dotColor }]}>{score}%</Text>
+        >
+          <Image
+            source={{ uri: scored.person.avatarUrl }}
+            style={{
+              width: planetSize - 4,
+              height: planetSize - 4,
+              borderRadius: (planetSize - 4) / 2,
+            }}
+            contentFit="cover"
+            transition={300}
+          />
+        </View>
+        <View style={styles.planetLabelRow}>
+          <Text style={[styles.planetLabel, { color }]} numberOfLines={1}>
+            {scored.person.name}
+          </Text>
+          <View style={[styles.planetScoreBadge, { backgroundColor: color + '30' }]}>
+            <Text style={[styles.planetScoreText, { color }]}>{scored.score}%</Text>
           </View>
-        )}
-        {isNewlyDiscovered && !isSelf && (
+        </View>
+        {isNewlyDiscovered && (
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>NEW</Text>
           </View>
@@ -222,22 +263,84 @@ function DiscoveryBanner() {
   );
 }
 
-function getColorForScore(score: number): string {
-  if (score >= 60) return Colors.dark.mapDotNew;
-  if (score >= 30) return Colors.dark.secondary;
-  return Colors.dark.mapDotOther;
+function OrbitRing({ radius, centerX, centerY, rotationX, rotationY, color }: {
+  radius: number; centerX: number; centerY: number; rotationX: number; rotationY: number; color: string;
+}) {
+  const points = 60;
+  const perspective = 600;
+
+  const cosRX = Math.cos(rotationX);
+  const sinRX = Math.sin(rotationX);
+  const cosRY = Math.cos(rotationY);
+  const sinRY = Math.sin(rotationY);
+
+  const dotElements = [];
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * Math.PI * 2;
+    const x3d = radius * Math.cos(theta);
+    const z3d = radius * Math.sin(theta);
+
+    const x1 = x3d * cosRY + z3d * sinRY;
+    const z1 = -x3d * sinRY + z3d * cosRY;
+    const y1 = -z1 * sinRX;
+    const z2 = z1 * cosRX;
+
+    const scale3d = perspective / (perspective + z2);
+    const sx = centerX + x1 * scale3d;
+    const sy = centerY + y1 * scale3d;
+    const opacity = Math.max(0.1, scale3d * 0.4);
+
+    dotElements.push(
+      <View
+        key={i}
+        style={{
+          position: 'absolute',
+          left: sx - 1,
+          top: sy - 1,
+          width: 2,
+          height: 2,
+          borderRadius: 1,
+          backgroundColor: color,
+          opacity,
+        }}
+      />
+    );
+  }
+
+  return <>{dotElements}</>;
 }
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
-  const { filteredNearbyPeople, getSerendipityScores, interestThreshold } = useUser();
+  const { filteredNearbyPeople, getSerendipityScores, interestThreshold, profile } = useUser();
   const { highlightedPersonId, clearHighlight, discoveredPeople, isScanning } = useDiscovery();
 
   const scores = getSerendipityScores();
   const filteredScores = scores.filter(s =>
     filteredNearbyPeople.some(p => p.id === s.person.id)
   );
+
+  const [rotationX, setRotationX] = useState(-0.3);
+  const [rotationY, setRotationY] = useState(0);
+  const [autoAngle, setAutoAngle] = useState(0);
+
+  const rotXRef = useRef(rotationX);
+  const rotYRef = useRef(rotationY);
+  const lastRotX = useRef(rotationX);
+  const lastRotY = useRef(rotationY);
+
+  useEffect(() => {
+    rotXRef.current = rotationX;
+    rotYRef.current = rotationY;
+  }, [rotationX, rotationY]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAutoAngle(prev => prev + 0.006);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (highlightedPersonId) {
@@ -246,18 +349,44 @@ export default function MapScreen() {
     }
   }, [highlightedPersonId]);
 
-  const dotPositions = [
-    { x: SCREEN_WIDTH * 0.35, y: SCREEN_HEIGHT * 0.28 },
-    { x: SCREEN_WIDTH * 0.65, y: SCREEN_HEIGHT * 0.35 },
-    { x: SCREEN_WIDTH * 0.25, y: SCREEN_HEIGHT * 0.52 },
-    { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.55 },
-  ];
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5,
+      onPanResponderGrant: () => {
+        lastRotX.current = rotXRef.current;
+        lastRotY.current = rotYRef.current;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const sensitivity = 0.005;
+        const newRotY = lastRotY.current + gestureState.dx * sensitivity;
+        const newRotX = Math.max(-1.2, Math.min(1.2, lastRotX.current + gestureState.dy * sensitivity));
+        setRotationY(newRotY);
+        setRotationX(newRotX);
+      },
+    })
+  ).current;
 
-  const selfPosition = { x: SCREEN_WIDTH * 0.48, y: SCREEN_HEIGHT * 0.42 };
+  const headerHeight = 60;
+  const tabBarHeight = Platform.OS === 'web' ? 84 + 34 : 90;
+  const availableHeight = SCREEN_HEIGHT - topPadding - headerHeight - tabBarHeight;
+  const centerX = SCREEN_WIDTH / 2;
+  const centerY = topPadding + headerHeight + availableHeight * 0.42;
+
+  const orbitRadii = useMemo(() => {
+    const base = Math.min(SCREEN_WIDTH, availableHeight) * 0.28;
+    return filteredScores.map((_, idx) => {
+      const ring = Math.floor(idx / 2);
+      return base + ring * 50;
+    });
+  }, [filteredScores.length, availableHeight]);
 
   const handleDotPress = (personId: string) => {
     router.push({ pathname: '/connection/[id]', params: { id: personId } });
   };
+
+  const selfAvatarSize = 72;
 
   return (
     <View style={[styles.container, { paddingTop: topPadding }]}>
@@ -267,35 +396,6 @@ export default function MapScreen() {
       />
 
       <ParticleBackground />
-
-      <View style={styles.gridOverlay} pointerEvents="none">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <View
-            key={`h${i}`}
-            style={[
-              styles.gridLine,
-              {
-                top: (SCREEN_HEIGHT / 12) * i,
-                width: '100%',
-                height: 1,
-              },
-            ]}
-          />
-        ))}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <View
-            key={`v${i}`}
-            style={[
-              styles.gridLine,
-              {
-                left: (SCREEN_WIDTH / 8) * i,
-                height: '100%',
-                width: 1,
-              },
-            ]}
-          />
-        ))}
-      </View>
 
       <Animated.View entering={FadeIn.duration(600)} style={styles.header}>
         <View style={styles.headerLeft}>
@@ -319,31 +419,57 @@ export default function MapScreen() {
 
       {isScanning && <DiscoveryBanner />}
 
-      <View style={styles.mapArea}>
-        <MapDot
-          x={selfPosition.x}
-          y={selfPosition.y - topPadding - 60}
-          color={Colors.dark.mapDotSelf}
-          label="You"
-          delay={0}
-          isSelf
-        />
+      <View style={styles.solarSystem} {...panResponder.panHandlers}>
+        {orbitRadii.filter((v, i, a) => a.indexOf(v) === i).map((radius, idx) => (
+          <OrbitRing
+            key={`ring-${idx}`}
+            radius={radius}
+            centerX={centerX}
+            centerY={centerY - topPadding - headerHeight}
+            rotationX={rotationX}
+            rotationY={rotationY}
+            color={idx === 0 ? 'rgba(0, 212, 170, 0.15)' : idx === 1 ? 'rgba(108, 99, 255, 0.1)' : 'rgba(255, 105, 180, 0.08)'}
+          />
+        ))}
+
+        <View
+          style={[
+            styles.selfContainer,
+            {
+              left: centerX - selfAvatarSize / 2,
+              top: centerY - topPadding - headerHeight - selfAvatarSize / 2,
+            },
+          ]}
+        >
+          <View style={styles.selfGlow} />
+          <View style={styles.selfBorder}>
+            <Image
+              source={{ uri: profile.avatarUrl }}
+              style={styles.selfImage}
+              contentFit="cover"
+              transition={300}
+            />
+          </View>
+          <Text style={styles.selfLabel}>You</Text>
+        </View>
+
         {filteredScores.map((scored, idx) => {
-          const pos = dotPositions[idx % dotPositions.length];
-          if (!pos) return null;
+          const angleOffset = (idx / Math.max(filteredScores.length, 1)) * Math.PI * 2;
           const isDiscovered = discoveredPeople.some(d => d.person.id === scored.person.id && d.notified);
           return (
-            <MapDot
+            <OrbitingPlanet
               key={scored.person.id}
-              x={pos.x}
-              y={pos.y - topPadding - 60}
-              color={getColorForScore(scored.score)}
-              label={scored.person.name}
-              score={scored.score}
-              delay={(idx + 1) * 300}
+              scored={scored}
+              orbitRadius={orbitRadii[idx] || 100}
+              angleOffset={angleOffset}
+              rotationX={rotationX}
+              rotationY={rotationY}
+              centerX={centerX}
+              centerY={centerY - topPadding - headerHeight}
               onPress={() => handleDotPress(scored.person.id)}
               isHighlighted={scored.person.id === highlightedPersonId}
               isNewlyDiscovered={isDiscovered}
+              autoAngle={autoAngle}
             />
           );
         })}
@@ -363,13 +489,13 @@ export default function MapScreen() {
           </View>
         ) : !isScanning ? (
           <View style={styles.hintCard}>
-            <Ionicons name="bluetooth" size={16} color={Colors.dark.accent} />
-            <Text style={styles.hintText}>Tap the scan button to discover nearby people</Text>
+            <Ionicons name="planet" size={16} color={Colors.dark.accent} />
+            <Text style={styles.hintText}>Drag to rotate - tap a planet to connect</Text>
           </View>
         ) : (
           <View style={styles.hintCard}>
             <Ionicons name="sparkles" size={16} color={Colors.dark.accent} />
-            <Text style={styles.hintText}>Tap a dot to discover someone new</Text>
+            <Text style={styles.hintText}>Scanning - tap a planet to learn more</Text>
           </View>
         )}
       </Animated.View>
@@ -381,13 +507,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLine: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   header: {
     flexDirection: 'row',
@@ -499,57 +618,83 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_400Regular',
     color: Colors.dark.textSecondary,
   },
-  mapArea: {
+  solarSystem: {
     flex: 1,
     position: 'relative',
   },
-  dotContainer: {
+  selfContainer: {
     position: 'absolute',
-    width: 56,
-    height: 56,
+    alignItems: 'center',
+    zIndex: 200,
+  },
+  selfGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0, 212, 170, 0.08)',
+    top: -14,
+    left: -14,
+  },
+  selfBorder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: Colors.dark.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5,
-  },
-  dotPulse: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignSelf: 'center',
-  },
-  dot: {
-    alignSelf: 'center',
+    shadowColor: Colors.dark.accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  selfRing: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: 'rgba(0, 212, 170, 0.3)',
-    alignSelf: 'center',
+  selfImage: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
   },
-  dotLabelRow: {
-    alignItems: 'center',
+  selfLabel: {
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.dark.accent,
     marginTop: 4,
+  },
+  planetContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  planetGlow: {
+    position: 'absolute',
+  },
+  planetImageWrap: {
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  planetLabelRow: {
+    alignItems: 'center',
+    marginTop: 3,
     gap: 2,
   },
-  dotLabel: {
+  planetLabel: {
     fontSize: 11,
     fontFamily: 'Outfit_600SemiBold',
     textAlign: 'center',
   },
-  scoreBadge: {
+  planetScoreBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 8,
   },
-  scoreText: {
+  planetScoreText: {
     fontSize: 9,
     fontFamily: 'Outfit_700Bold',
   },
@@ -558,6 +703,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 6,
+    marginTop: 2,
   },
   newBadgeText: {
     fontSize: 8,

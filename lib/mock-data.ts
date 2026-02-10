@@ -124,3 +124,124 @@ export function getCommonInterests(userId: string): string[] {
   if (!person) return [];
   return currentUser.interests.filter(i => person.interests.includes(i));
 }
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  imageUrl: string;
+  tags: string[];
+  attendeeCount: number;
+  friendsGoing: string[];
+  isOpen: boolean;
+}
+
+export const events: Event[] = [
+  {
+    id: 'e1',
+    title: 'Sunset Hike at Griffith Park',
+    description: 'Join us for a chill sunset hike with great views of the city. All fitness levels welcome!',
+    date: 'Feb 15, 2026',
+    time: '5:00 PM',
+    location: 'Griffith Observatory Trail',
+    imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&h=200&fit=crop',
+    tags: ['Sunset hikes', 'Hiking', 'Photography'],
+    attendeeCount: 24,
+    friendsGoing: ['10', '13'],
+    isOpen: true,
+  },
+  {
+    id: 'e2',
+    title: 'Vinyl & Chill Night',
+    description: 'Bring your favorite records and discover new music with fellow vinyl lovers.',
+    date: 'Feb 18, 2026',
+    time: '7:30 PM',
+    location: 'The Record Parlour, Hollywood',
+    imageUrl: 'https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=400&h=200&fit=crop',
+    tags: ['Vinyl records', 'Make playlists', 'Music production'],
+    attendeeCount: 16,
+    friendsGoing: ['11', '12', '16'],
+    isOpen: true,
+  },
+  {
+    id: 'e3',
+    title: 'Beach Volleyball Tournament',
+    description: 'Casual 4v4 tournament at Santa Monica. Teams formed on site!',
+    date: 'Feb 20, 2026',
+    time: '10:00 AM',
+    location: 'Santa Monica Beach Courts',
+    imageUrl: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=200&fit=crop',
+    tags: ['Play volleyball', 'Surf', 'Gym'],
+    attendeeCount: 32,
+    friendsGoing: ['13', '15'],
+    isOpen: true,
+  },
+  {
+    id: 'e4',
+    title: 'Ramen Making Workshop',
+    description: 'Learn to make authentic tonkotsu ramen from scratch. Ingredients provided!',
+    date: 'Feb 22, 2026',
+    time: '6:00 PM',
+    location: 'UCLA Cooking Lab',
+    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop',
+    tags: ['Cook ramen', 'Cook'],
+    attendeeCount: 12,
+    friendsGoing: ['10'],
+    isOpen: true,
+  },
+  {
+    id: 'e5',
+    title: 'Indie Film Screening + Discussion',
+    description: 'Watch an award-winning short film followed by a Q&A with the director.',
+    date: 'Feb 25, 2026',
+    time: '8:00 PM',
+    location: 'Laemmle NoHo 7',
+    imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=200&fit=crop',
+    tags: ['Film festivals', 'Photography', 'Podcasts'],
+    attendeeCount: 45,
+    friendsGoing: [],
+    isOpen: true,
+  },
+  {
+    id: 'e6',
+    title: 'Morning Yoga in the Park',
+    description: 'Start your day right with a free yoga session. Bring your own mat!',
+    date: 'Feb 16, 2026',
+    time: '7:00 AM',
+    location: 'Westwood Park',
+    imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=200&fit=crop',
+    tags: ['Yoga', 'Meditation', 'Running'],
+    attendeeCount: 18,
+    friendsGoing: [],
+    isOpen: true,
+  },
+  {
+    id: 'e7',
+    title: 'Board Game & Boba Night',
+    description: 'Competitive and cooperative board games with unlimited boba refills.',
+    date: 'Feb 19, 2026',
+    time: '6:30 PM',
+    location: 'GameHaus Cafe, Glendale',
+    imageUrl: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=400&h=200&fit=crop',
+    tags: ['Board games', 'Gaming', 'Coffee tasting'],
+    attendeeCount: 20,
+    friendsGoing: ['11', '14'],
+    isOpen: true,
+  },
+  {
+    id: 'e8',
+    title: 'Thrift Shopping Crawl',
+    description: 'Hit 5 of LA\'s best thrift stores in one afternoon. Find hidden gems!',
+    date: 'Feb 23, 2026',
+    time: '1:00 PM',
+    location: 'Meet at Goodwill on Fairfax',
+    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=200&fit=crop',
+    tags: ['Thrift shopping', 'Skateboarding'],
+    attendeeCount: 15,
+    friendsGoing: ['12', '16'],
+    isOpen: true,
+  },
+];

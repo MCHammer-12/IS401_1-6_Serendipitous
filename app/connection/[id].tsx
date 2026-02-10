@@ -86,6 +86,16 @@ export default function ConnectionScreen() {
     router.push({ pathname: '/about/[id]', params: { id: person.id } });
   };
 
+  const handleMessage = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    router.back();
+    setTimeout(() => {
+      router.push({ pathname: '/message/[id]', params: { id: person.id } });
+    }, 100);
+  };
+
   const handleDismiss = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -187,6 +197,17 @@ export default function ConnectionScreen() {
               </LinearGradient>
             </Pressable>
           </Animated.View>
+
+          <Pressable
+            onPress={handleMessage}
+            style={({ pressed }) => [
+              styles.messageLinkBtn,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Ionicons name="chatbubble-outline" size={16} color={Colors.dark.secondary} />
+            <Text style={styles.messageLinkText}>Send a message</Text>
+          </Pressable>
 
           <Pressable onPress={handleDismiss} style={styles.noThanksBtn}>
             <Ionicons name="close" size={16} color={Colors.dark.textMuted} />
@@ -365,6 +386,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Outfit_700Bold',
     color: '#fff',
+  },
+  messageLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.dark.secondaryLight,
+    borderRadius: 20,
+  },
+  messageLinkText: {
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.dark.secondary,
   },
   noThanksBtn: {
     flexDirection: 'row',

@@ -41,6 +41,14 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="message/[id]"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+        }}
+      />
+      <Stack.Screen
         name="settings"
         options={{
           headerShown: false,
