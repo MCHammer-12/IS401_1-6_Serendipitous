@@ -72,6 +72,9 @@ Basically, our tech stack is PERN adapted for mobile using Expo + React Native +
 - **Drizzle ORM** with PostgreSQL
 - **esbuild** for production builds
 
+## Prerequisites
+
+
 ## Getting Started
 
 ### Prerequisites
