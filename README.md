@@ -72,73 +72,199 @@ Basically, our tech stack is PERN adapted for mobile using Expo + React Native +
 - **Drizzle ORM** with PostgreSQL
 - **esbuild** for production builds
 
+### Database
+- **PostgreSQL 12+** for data persistence
+- **Drizzle ORM** for type-safe SQL queries
+- **6 tables**: users, interests, user_interests, connections, messages, location_pings
+
 ## Prerequisites
 In addition to running npm install to install all dependencies in package.json, [download psql](https://www.postgresql.org/download/) and add the psql command to PATH. Node.js, React Native, Express, and Expo are also required. See also additional prereqs below:
 - Node.js 18+
 - npm or yarn
 
+## Architecture Diagram
+
+## Prerequisites
+
+Install these before starting:
+1. **Node.js 18+**: https://nodejs.org/en/download/
+2. **PostgreSQL 12+**: https://www.postgresql.org/download/windows/
+3. **Git**: https://git-scm.com/download/win
+
+Verify installation:
+```bash
+node --version && npm --version && psql --version && git --version
+```
+
 ## Installation and Setup
+
+### Step 1: Clone & Create Database
+```bash
+git clone https://github.com/yourusername/IS401_1-6_Serendipitous.git
+cd IS401_1-6_Serendipitous
+psql -U postgres -c "CREATE DATABASE serendipitous;"
+```
+
+### Step 2: Initialize Schema & Seed Data
+```bash
+cd db
+psql -U postgres -d serendipitous -f schema.sql
+psql -U postgres -d serendipitous -f seed.sql
+cd ..
+```
+
+### Step 3: Configure Backend
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `.env` and replace `YOUR_PASSWORD` with your PostgreSQL password:
+```
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/serendipitous
+```
+
+Install dependencies:
+```bash
+npm install
+```
+
+### Step 4: Install Frontend
+```bash
+cd ../frontend
+npm install
+```
+
+**Done!** You're ready to run the app.
 
 ## Running the Application
 
-1. Clone the repository
-2. Install dependencies:
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm run dev
+```
+Expected: `✅ Database connected successfully` and `⚡ Server is running on http://localhost:5000`
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run expo:dev
+```
+
+**Access the App:**
+- **Web Browser**: Press `w` in the frontend terminal
+- **Mobile**: Scan the QR code with Expo Go app
+- **Android**: Press `a` (requires Android Studio)
+
+## Verifying the Vertical Slice
+
+### What We're Testing
+Edit your profile → Click Save → Changes appear immediately → Changes persist after refresh → Changes are in the database.
+
+### Steps
+
+1. **Navigate to Settings**: Settings tab → gear icon
+
+2. **Change Your Profile** (pick one):
+   - **Name**: "Alex Chen" → "Alex Smith"
+   - **Age**: 21 → 22
+   - **Quote**: "Chaos is a ladder" → "Hello World!"
+   - **Hometown**: "San Francisco, CA" → "Los Angeles, CA"
+   - **Connection Threshold**: Use +/- buttons to change from 1 → 2
+
+3. **Save Changes**: Scroll down → Click "Save" button
+
+4. **Verify in App**: Go back to Settings → Your change should still be there
+
+5. **Verify in Database**:
+
+   For name changes:
    ```bash
-   npm install
-   ```
-3. Start the backend server:
-   ```bash
-   npm run server:dev
-   ```
-4. Start the Expo dev server:
-   ```bash
-   npm run expo:dev
+   psql -U postgres -d serendipitous -c "SELECT name, age FROM \"user\" WHERE user_id = 1;"
    ```
 
-### Testing on Mobile
-Scan the QR code from the dev server output using the **Expo Go** app on your iOS or Android device.
+   For threshold changes:
+   ```bash
+   psql -U postgres -d serendipitous -c "SELECT name, interest_threshold FROM \"user\" WHERE user_id = 1;"
+   ```
 
-### Testing on Web
-Open `http://localhost:8081` in your browser.
+   You should see your updated values.
+
+6. **Verify Persistence After Refresh**:
+   - **Web**: Press F5 to refresh
+   - **Mobile**: Close app completely and reopen
+   - Navigate back to Settings
+   - Your changes should still be there
+   - Run the database query again - values should match
+
+### Success Example
+
+Before change:
+```bash
+psql -U postgres -d serendipitous -c "SELECT name FROM \"user\" WHERE user_id = 1;"
+ name     
+-----------
+ Alex Chen
+(1 row)
+```
+
+After change and save (check database):
+```bash
+psql -U postgres -d serendipitous -c "SELECT name FROM \"user\" WHERE user_id = 1;"
+   name    
+-----------
+ Alex Smith
+(1 row)
+```
+
+After refresh (app still shows "Alex Smith") and database still shows "Alex Smith" → ✅ **Vertical slice is working!**
+
+## Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| `DATABASE_URL is not defined` | Add `.env` file in backend folder with DATABASE_URL line |
+| `psql: command not found` | Add PostgreSQL to PATH: Search "Environment Variables" → Add `C:\Program Files\PostgreSQL\14\bin` to PATH |
+| `Database connection failed` | Check PostgreSQL is running. Windows: Search "Services" → Find "postgresql-*" → Start |
+| `Cannot create database` | Verify PostgreSQL password in `.env` file is correct |
+| `port 5000 already in use` | Change `PORT=5001` in `.env` file |
+| `npm install fails` | Delete `node_modules` and `package-lock.json`, run `npm install` again |
+
+## What Gets Saved to the Database
+
+When you save your profile:
+- `name`, `age`, `university`, `major`, `hometown`, `quote`, `profile_photo`
+- `interest_threshold` (the +/- buttons value)
+- `updated_at` timestamp
+
+Your interests are saved in the `user_interests` table linked by `user_id`.
+
+## Next Steps
+
+- Add more API endpoints for messaging, events, connections
+- Implement user authentication
+- Add real-time features with WebSockets
+- Build proximity-based matching algorithm
+- Add friend requests and social features
 
 ## Project Structure
 
 ```
-app/
-  (tabs)/
-    _layout.tsx        # Tab navigation layout
-    index.tsx          # Map tab (3D solar system view)
-    events.tsx         # Events discovery tab
-    friends.tsx        # Friends/connections list
-    profile.tsx        # User profile management
-  connection/[id].tsx  # Connection detail modal
-  about/[id].tsx       # Full profile modal
-  message/[id].tsx     # Chat/messaging screen
-  settings.tsx         # App settings
+backend/src/
+  ├── index.ts          # Server entry point
+  ├── db.ts             # Database connection
+  ├── routes.ts         # API endpoints (GET/PUT /api/users)
+  └── schema.ts         # Drizzle ORM schema
 
-lib/
-  user-context.tsx     # User state, interests, scoring
-  discovery-context.tsx # Bluetooth simulation, notifications
-  mock-data.ts         # Sample profiles, friends, events
-  query-client.ts      # API request helpers
+frontend/app/
+  ├── settings.tsx      # Profile editor (Save button)
+  ├── (tabs)/           # Main app pages
+  └── lib/user-context.tsx  # State management
 
-server/
-  index.ts             # Express server entry point
-  routes.ts            # API route registration
-  storage.ts           # Data storage interface
-
-shared/
-  schema.ts            # Database schema (Drizzle ORM)
-
-constants/
-  colors.ts            # Dark theme color system
+db/
+  ├── schema.sql        # Creates 6 tables
+  └── seed.sql          # Sample data (3 users)
 ```
-## Verifying the Vertical Slice
-To trigger the feature connected to the database:
-- Navigate to the profile page
-- Click the settings icon in the top right corner
-- Edit any information other than interest tags
-- Click the check mark button in the top right corner
-- You should see your changes reflected in the profile page
-- Refresh the page
-- Any changes made to the profile should be persistent
+
+Good luck with Serendipitous! 🚀
