@@ -77,15 +77,8 @@ Basically, our tech stack is PERN adapted for mobile using Expo + React Native +
 - **Drizzle ORM** for type-safe SQL queries
 - **6 tables**: users, interests, user_interests, connections, messages, location_pings
 
-## Prerequisites
-In addition to running npm install to install all dependencies in package.json, [download psql](https://www.postgresql.org/download/) and add the psql command to PATH. Node.js, React Native, Express, and Expo are also required. See also additional prereqs below:
-- Node.js 18+
-- npm or yarn
-
 ## Architecture Diagram
 <img width="1460" height="384" alt="ChatGPT Image Feb 18, 2026, 10_16_23 AM" src="https://github.com/user-attachments/assets/b3780aa6-a401-49f9-87f5-5c73d02d49fd" />
-
-
 
 ## Prerequisites
 
@@ -98,6 +91,8 @@ Verify installation:
 ```bash
 node --version && npm --version && psql --version && git --version
 ```
+
+In addition to downloading the above tools, run npm install for all other dependencies, and add the psql command to PATH. The npm package manager is also required.
 
 ## Installation and Setup
 
