@@ -83,16 +83,50 @@ Basically, our tech stack is PERN adapted for mobile using Expo + React Native +
 ## Prerequisites
 
 Install these before starting:
-1. **Node.js 18+**: https://nodejs.org/en/download/
-2. **PostgreSQL 12+**: https://www.postgresql.org/download/windows/
-3. **Git**: https://git-scm.com/download/win
 
-Verify installation:
+### 1. Node.js (Version 18+)
+**Download/Install:**
+- **Windows**: https://nodejs.org/en/download/
+- **macOS**: https://nodejs.org/en/download/ or `brew install node`
+
+**Verify:**
+```bash
+node --version && npm --version
+```
+Expected: `v18.0.0+` and `9.0.0+`
+
+### 2. PostgreSQL (Version 12+)
+**Download/Install:**
+- **Windows**: https://www.postgresql.org/download/windows/
+- **macOS**: https://www.postgresql.org/download/macosx/ or `brew install postgresql@15`
+
+**Setup Notes:**
+- **Windows**: Remember your postgres password; add PostgreSQL to PATH during installation
+- **macOS**: If using Homebrew, start with `brew services start postgresql@15`
+
+**Verify:**
+```bash
+psql --version
+```
+Expected: `psql (PostgreSQL) 12.0+`
+
+### 3. Git
+**Download/Install:**
+- **Windows**: https://git-scm.com/download/win
+- **macOS**: https://git-scm.com/download/mac or `brew install git`
+
+**Verify:**
+```bash
+git --version
+```
+Expected: `git version 2.40.0+`
+
+### Verify All Prerequisites
 ```bash
 node --version && npm --version && psql --version && git --version
-```
 
 In addition to downloading the above tools, run npm install for all other dependencies, and add the psql command to PATH. The npm package manager is also required.
+```
 
 ## Installation and Setup
 
@@ -223,8 +257,8 @@ After refresh (app still shows "Alex Smith") and database still shows "Alex Smit
 | Error | Solution |
 |-------|----------|
 | `DATABASE_URL is not defined` | Add `.env` file in backend folder with DATABASE_URL line |
-| `psql: command not found` | Add PostgreSQL to PATH: Search "Environment Variables" → Add `C:\Program Files\PostgreSQL\14\bin` to PATH |
-| `Database connection failed` | Check PostgreSQL is running. Windows: Search "Services" → Find "postgresql-*" → Start |
+| `psql: command not found` | **Windows**: Search "Environment Variables" → Add `C:\Program Files\PostgreSQL\14\bin` to PATH. **macOS**: If using Homebrew, PATH should be set automatically. Otherwise add to ~/.zshrc: `export PATH="/usr/local/opt/postgresql@15/bin:$PATH"` |
+| `Database connection failed` | **Windows**: Search "Services" → Find "postgresql-*" → Start. **macOS**: Run `brew services start postgresql@15` |
 | `Cannot create database` | Verify PostgreSQL password in `.env` file is correct |
 | `port 5000 already in use` | Change `PORT=5001` in `.env` file |
 | `npm install fails` | Delete `node_modules` and `package-lock.json`, run `npm install` again |
