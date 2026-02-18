@@ -1,6 +1,6 @@
 # Serendipitous
 
-A social discovery app for college students that helps you find and connect with nearby people who share your interests. Serendipitous uses simulated Bluetooth proximity detection and a unique 3D solar system visualization to make meeting new people feel like discovering new worlds.
+A social discovery app for college students that helps you find and connect with nearby people who share your interests. Serendipitous uses Bluetooth proximity detection to facilitate real-life, in-person interactions to help college students make real friends. Users can be notified when users with similar users are nearby, then use the in-app messaging and profile sharing to locate the other user in-person. Users can then tap phones (similar to sharing contact info in iOS) to become friends in the Serendipitous app. In addition to the main function of facilitating these spontaneous in-person interactions, Serendipitous also provides a digital space to plan and advertise events. Currently, only users can post events, but this provides a potential source of future revenue. Users can see friends attending events and, after registering for the event, can see and message all users attending that event.
 
 ## Features
 
