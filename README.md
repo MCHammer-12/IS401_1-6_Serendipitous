@@ -134,3 +134,11 @@ constants/
   colors.ts            # Dark theme color system
 ```
 ## Verifying the Vertical Slice
+To trigger the feature connected to the database:
+- Navigate to the profile page
+- Click the settings icon in the top right corner
+- Edit any information other than interest tags
+- Click the check mark button in the top right corner
+- You should see your changes reflected in the profile page
+- Refresh the page
+- Any changes made to the profile should be persistent
