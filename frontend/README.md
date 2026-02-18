@@ -50,10 +50,8 @@ A social discovery app for college students that helps you find and connect with
 - Postgres
 - Express
 - React Native (via Expo)
-- Drizzle
-- TypeScript
-- TanStack Query
 - Node
+- TypeScript
 
 Basically, our tech stack is PERN adapted for mobile using Expo + React Native + TypeScript for rendering on the mobile frontend and Node + Typescript for the backend.
 
