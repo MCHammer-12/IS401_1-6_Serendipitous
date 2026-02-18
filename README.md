@@ -73,15 +73,13 @@ Basically, our tech stack is PERN adapted for mobile using Expo + React Native +
 - **esbuild** for production builds
 
 ## Prerequisites
-
-
-## Getting Started
-
-### Prerequisites
+In addition to running npm install to install all dependencies in package.json, [download psql](https://www.postgresql.org/download/) and add the psql command to PATH. Node.js, React Native, Express, and Expo are also required. See also additional prereqs below:
 - Node.js 18+
 - npm or yarn
 
-### Installation
+## Installation and Setup
+
+## Running the Application
 
 1. Clone the repository
 2. Install dependencies:
@@ -135,11 +133,4 @@ shared/
 constants/
   colors.ts            # Dark theme color system
 ```
-
-## Design
-
-Serendipitous uses a dark-only theme with glassmorphism effects throughout. The color palette centers on teal accents with purple secondary tones against deep dark backgrounds. The 3D map visualization uses perspective projection with depth-based opacity and scaling for a convincing spatial effect.
-
-## License
-
-MIT
+## Verifying the Vertical Slice
