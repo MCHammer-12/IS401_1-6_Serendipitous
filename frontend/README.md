@@ -46,6 +46,7 @@ A social discovery app for college students that helps you find and connect with
 - Animated list with smooth entry transitions
 
 ## Tech Stack
+- PERN (PostgreSQL, Express, React, Node.js)
 
 ### Frontend
 - **Expo SDK 54** with React Native 0.81 (new architecture enabled)
