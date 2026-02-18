@@ -124,9 +124,8 @@ Expected: `git version 2.40.0+`
 ### Verify All Prerequisites
 ```bash
 node --version && npm --version && psql --version && git --version
-
-In addition to downloading the above tools, run npm install for all other dependencies, and add the psql command to PATH. The npm package manager is also required.
 ```
+In addition to downloading the above tools, run npm install for all other dependencies, and add the psql command to PATH. The npm package manager is also required.
 
 ## Installation and Setup
 
