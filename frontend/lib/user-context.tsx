@@ -85,12 +85,55 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    setProfile(prev => {
-      const next = { ...prev, ...updates };
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(console.error);
-      return next;
-    });
+  const updateProfile = async (updates: Partial<UserProfile> & { interestThreshold?: number }) => {
+    try {
+      // Update local state first for UI responsiveness
+      setProfile(prev => {
+        const next = { ...prev, ...updates };
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(console.error);
+        return next;
+      });
+
+      // Update interest threshold if provided
+      if (updates.interestThreshold !== undefined) {
+        setInterestThresholdState(updates.interestThreshold);
+        await AsyncStorage.setItem(THRESHOLD_KEY, updates.interestThreshold.toString());
+      }
+
+      // Send update to backend
+      const response = await fetch('http://localhost:5000/api/users/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: updates.name,
+          age: updates.age,
+          university: updates.school,
+          major: updates.major,
+          hometown: updates.hometown,
+          quote: updates.quote,
+          profilePhoto: updates.avatarUrl,
+          interests: updates.interests,
+          interestThreshold: updates.interestThreshold,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to update profile on server');
+        // Even if server update fails, the local state is updated
+      } else {
+        const data = await response.json();
+        // Update threshold from response if provided
+        if (data.interestThreshold !== undefined) {
+          setInterestThresholdState(data.interestThreshold);
+          await AsyncStorage.setItem(THRESHOLD_KEY, data.interestThreshold.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Still update locally even if server call fails
+    }
   };
 
   const setInterestThreshold = (val: number) => {

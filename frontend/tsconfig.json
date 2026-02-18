@@ -2,10 +2,15 @@
   "compilerOptions": {
     "allowJs": true,
     "baseUrl": ".",
-    "customConditions": ["react-native"],
+    "customConditions": [
+      "react-native"
+    ],
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
@@ -15,8 +20,12 @@
     "strict": true,
     "target": "ESNext",
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["./shared/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ]
     }
   },
   "include": [
@@ -24,5 +33,6 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

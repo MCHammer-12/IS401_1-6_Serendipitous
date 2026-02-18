@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development tsx src/index.ts",
+    "build": "tsc",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "express": "^5.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "pg": "^8.16.3",
+    "drizzle-orm": "^0.39.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.14.12",
+    "@types/cors": "^2.8.17",
+    "typescript": "~5.9.2",
+    "tsx": "^4.20.6",
+    "cross-env": "^7.0.3"
+  }
+}

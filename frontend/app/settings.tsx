@@ -130,6 +130,7 @@ export default function SettingsScreen() {
       quote: quote.trim() || profile.quote,
       age: parseInt(age, 10) || profile.age,
       interests: selectedInterests,
+      interestThreshold: threshold,
     });
     setInterestThreshold(threshold);
     router.back();
