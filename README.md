@@ -83,6 +83,8 @@ In addition to running npm install to install all dependencies in package.json, 
 - npm or yarn
 
 ## Architecture Diagram
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/a94bc38d-caea-427e-9250-aa766c613468" />
+
 
 ## Prerequisites
 
