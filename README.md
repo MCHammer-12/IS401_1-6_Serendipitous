@@ -131,7 +131,7 @@ In addition to downloading the above tools, run npm install for all other depend
 
 ### Step 1: Clone & Create Database
 ```bash
-git clone https://github.com/yourusername/IS401_1-6_Serendipitous.git
+git clone https://github.com/MCHammer-12/IS401_1-6_Serendipitous.git
 cd IS401_1-6_Serendipitous
 psql -U postgres -c "CREATE DATABASE serendipitous;"
 ```
