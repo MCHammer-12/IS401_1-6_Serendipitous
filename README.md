@@ -195,20 +195,21 @@ Edit your profile → Click Save → Changes appear immediately → Changes pers
 
 ### Steps
 
-1. **Navigate to Settings**: Settings tab → gear icon
+1. **Navigate to Profile**: Profile icon (bottom right on navbar)
+2. **Navigate to Settings**: Settings tab → gear icon
 
-2. **Change Your Profile** (pick one):
+3. **Change Your Profile** (pick one):
    - **Name**: "Alex Chen" → "Alex Smith"
    - **Age**: 21 → 22
    - **Quote**: "Chaos is a ladder" → "Hello World!"
    - **Hometown**: "San Francisco, CA" → "Los Angeles, CA"
    - **Connection Threshold**: Use +/- buttons to change from 1 → 2
 
-3. **Save Changes**: Scroll down → Click "Save" button
+4. **Save Changes**: Scroll down → Click "Save" button
 
-4. **Verify in App**: Go back to Settings → Your change should still be there
+5. **Verify in App**: Go back to Settings → Your change should still be there
 
-5. **Verify in Database**:
+6. **Verify in Database**:
 
    For name changes:
    ```bash
@@ -222,7 +223,7 @@ Edit your profile → Click Save → Changes appear immediately → Changes pers
 
    You should see your updated values.
 
-6. **Verify Persistence After Refresh**:
+7. **Verify Persistence After Refresh**:
    - **Web**: Press F5 to refresh
    - **Mobile**: Close app completely and reopen
    - Navigate back to Settings
