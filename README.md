@@ -125,7 +125,7 @@ Expected: `git version 2.40.0+`
 ```bash
 node --version && npm --version && psql --version && git --version
 ```
-In addition to downloading the above tools, run npm install for all other dependencies, and add the psql command to PATH. The npm package manager is also required.
+In addition to downloading the above tools, add the psql command to PATH.
 
 ## Installation and Setup
 
@@ -183,10 +183,14 @@ cd frontend
 npm run expo:dev
 ```
 
+Expected: The frontend is up and ready to visit when the QR code appears and it says "> Open in the web browser..."
+
 **Access the App:**
-- **Web Browser**: Press `w` in the frontend terminal
+- **Web Browser**: Press `w` in the frontend terminal. Alternatively, visit http://localhost:8081/
 - **Mobile**: Scan the QR code with Expo Go app
 - **Android**: Press `a` (requires Android Studio)
+
+*Note: it takes quite a long time to load the first time you visit the web page. It may take several minutes to load. You can check the loading status on the frontend terminal*
 
 ## Verifying the Vertical Slice
 
@@ -196,27 +200,29 @@ Edit your profile → Click Save → Changes appear immediately → Changes pers
 ### Steps
 
 1. **Navigate to Profile**: Profile icon (bottom right on navbar)
-2. **Navigate to Settings**: Settings tab → gear icon
+2. **Navigate to Settings**: gear icon in the top right
 
 3. **Change Your Profile** (pick one):
    - **Name**: "Alex Chen" → "Alex Smith"
    - **Age**: 21 → 22
    - **Quote**: "Chaos is a ladder" → "Hello World!"
    - **Hometown**: "San Francisco, CA" → "Los Angeles, CA"
-   - **Connection Threshold**: Use +/- buttons to change from 1 → 2
+   - **Connection Threshold**: Use +/- buttons to change from 1 → 2 (Note: this change is only visible in the settings tab)
+  
+***CHANGING INTERESTS IS NOT CURRENTLY SUPPORTED***
 
-4. **Save Changes**: Scroll down → Click "Save" button
+4. **Save Changes**: Click the green check mark in the top right
 
-5. **Verify in App**: Go back to Settings → Your change should still be there
+5. **Verify in App**: All changes should be visible on your profile page (except connection threshold is visible only in settings
 
 6. **Verify in Database**:
 
-   For name changes:
+   For name changes (using a third terminal):
    ```bash
    psql -U postgres -d serendipitous -c "SELECT name, age FROM \"user\" WHERE user_id = 1;"
    ```
 
-   For threshold changes:
+   For threshold changes (using a third terminal):
    ```bash
    psql -U postgres -d serendipitous -c "SELECT name, interest_threshold FROM \"user\" WHERE user_id = 1;"
    ```
@@ -270,13 +276,9 @@ When you save your profile:
 - `interest_threshold` (the +/- buttons value)
 - `updated_at` timestamp
 
-Your interests are saved in the `user_interests` table linked by `user_id`.
-
 ## Next Steps
 
 - Add more API endpoints for messaging, events, connections
-- Implement user authentication
-- Add real-time features with WebSockets
 - Build proximity-based matching algorithm
 - Add friend requests and social features
 
